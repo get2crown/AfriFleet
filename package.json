@@ -1,0 +1,10 @@
+{
+  "name": "afritech-fleet-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "cd frontend && npm start",
+    "build": "cd frontend && npm run build"
+  },
+  "proxy": "http://localhost:8000"
+}
