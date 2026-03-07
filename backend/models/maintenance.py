@@ -12,6 +12,8 @@ class MaintenanceIssue(Base):
     vehicle_id = Column(Integer, ForeignKey("vehicles.id"))
     vehicle_name = Column(String, nullable=True)
     registration_number = Column(String, nullable=True)
+    tasks = relationship("MaintenanceTask", back_populates="issue", cascade="all, delete-orphan")
+
     
     # From your Excel
     observation = Column(Text)
@@ -56,7 +58,7 @@ class MaintenanceTask(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     issue_id = Column(Integer, ForeignKey("maintenance_issues.id"))
-    
+    issue = relationship("MaintenanceIssue", back_populates="tasks")
     # From your Excel line items
     description = Column(String)
     quantity = Column(Integer, default=1)

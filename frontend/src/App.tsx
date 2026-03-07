@@ -16,6 +16,7 @@ import Maintenance from './pages/Maintenance';
 import FuelLogs from './pages/FuelLogs';
 import Reports from './pages/Reports';
 import Approvals from './pages/Approvals';
+import CreateMaintenance from './pages/CreateMaintenance';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
                 <Route path="/fuel" element={<FuelLogs />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/approvals" element={<Approvals />} />
+                <Route path="/maintenance/new" element={<CreateMaintenance />} />
               </Routes>
             </Layout>
           </Router>

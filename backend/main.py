@@ -1,6 +1,7 @@
 # backend/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from backend.routers.maintenance import router as maintenance_router
 import uvicorn
 
 # use package-relative imports so the module can be executed from
