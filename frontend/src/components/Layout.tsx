@@ -22,6 +22,7 @@ import {
   Link as MuiLink,
   Backdrop,
   CircularProgress,
+  Chip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -33,10 +34,12 @@ import {
   Approval as ApprovalIcon,
   Notifications as NotificationsIcon,
   Person as PersonIcon,
+  Logout as LogoutIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import QuickSearch from './QuickSearch';
 import { useLoading } from '../contexts/LoadingContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const drawerWidth = 280;
 
@@ -53,6 +56,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const { user, logout } = useAuth();
+
 
   // keyboard shortcuts
   useEffect(() => {
@@ -268,9 +273,28 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <CircularProgress color="inherit" />
       </Backdrop>
 
+      // In the profile menu items, add logout option:
+      <MenuItem onClick={() => { logout(); navigate('/login'); }}>
+        <ListItemIcon>
+          <LogoutIcon fontSize="small" />
+         </ListItemIcon>
+        Logout
+      </MenuItem>
+    // Optionally show user name in AppBar:
+      <Typography variant="body2" sx={{ mr: 1 }}>
+    {user?.full_name}
+  </Typography>
+  < Chip 
+    label={user?.role} 
+    size="small" 
+    color="primary" 
+    variant="outlined" 
+  />
+
       {/* quick search dialog */}
       <QuickSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </Box>
+    
   );
 };
 

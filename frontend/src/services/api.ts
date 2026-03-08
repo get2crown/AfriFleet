@@ -1,3 +1,4 @@
+// src/services/api.ts
 import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -10,7 +11,7 @@ export const setLoadingCallback = (callback: (isLoading: boolean) => void) => {
   loadingCallback = callback;
 };
 
-// Create axios instance (only once!)
+// Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -19,9 +20,13 @@ const api = axios.create({
   timeout: 10000,
 });
 
-// Request interceptor to start loading
+// Request interceptor to add token and start loading
 api.interceptors.request.use(
   (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     if (loadingCallback) {
       loadingCallback(true);
     }
@@ -35,7 +40,7 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to stop loading
+// Response interceptor to stop loading and handle errors
 api.interceptors.response.use(
   (response) => {
     if (loadingCallback) {
@@ -47,6 +52,14 @@ api.interceptors.response.use(
     if (loadingCallback) {
       loadingCallback(false);
     }
+    
+    // Handle 401 Unauthorized errors
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    
     return Promise.reject(error);
   }
 );
@@ -83,6 +96,16 @@ export const approvalsAPI = {
   getPending: () => api.get('/approvals/pending'),
   decide: (issueId: number, decision: string, comments?: string) => 
     api.post(`/approvals/${issueId}/decide`, { decision, comments }),
+};
+
+// Auth API calls
+export const authAPI = {
+  login: (username: string, password: string) => 
+    api.post('/auth/login', { username, password }),
+  register: (userData: any) => 
+    api.post('/auth/register', userData),
+  getCurrentUser: () => 
+    api.get('/auth/me'),
 };
 
 export default api;

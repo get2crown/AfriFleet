@@ -1,2 +1,43 @@
 To run backend
 uvicorn backend.main:app --reload --port 5000 
+
+# Start backend
+cd C:\Users\USER\Github\afritech-fleet
+.venv\Scripts\Activate.ps1
+uvicorn backend.main:app --reload --port 5000
+
+# Start frontend (new terminal)
+cd frontend
+npm start
+
+# Run migrations if needed
+python backend/migrate.py
+
+# Seed users if needed
+python backend/seed_users.py
+
+# Seed full database if needed
+python backend/seed_full.py
+
+admin	admin123	Admin
+ceo	ceo123	CEO
+fleet_manager	fleet123	Fleet Manager
+logistics	logistics123	Logistics Officer
+technician	tech123	Technician insta
+
+
+You've built a full-stack application with:
+
+FastAPI backend with JWT authentication
+
+SQLite database with Alembic-style migrations
+
+React + TypeScript frontend with Material-UI
+
+Role-based access control (Admin, CEO, Fleet Manager, Logistics Officer, Technician)
+
+Complete CRUD for all entities
+
+Dashboard with real-time stats
+
+Excel-like maintenance tracking

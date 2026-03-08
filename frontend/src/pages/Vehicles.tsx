@@ -226,7 +226,7 @@ const Vehicles: React.FC = () => {
                 name="status"
                 value={formData.status}
                 label="Status"
-                onChange={handleInputChange}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
               >
                 <MenuItem value="active">Active</MenuItem>
                 <MenuItem value="maintenance">Maintenance</MenuItem>

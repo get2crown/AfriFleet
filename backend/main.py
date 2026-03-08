@@ -3,6 +3,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.routers.maintenance import router as maintenance_router
 import uvicorn
+from backend.routers import auth
+from backend.migrate import run_migrations
 
 # use package-relative imports so the module can be executed from
 # the project root or via ``uvicorn backend.main:app`` without
@@ -20,6 +22,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Run migrations on startup
+@app.on_event("startup")
+async def startup_event():
+    print("🚀 Running database migrations...")
+    run_migrations()
+    print("✅ Migrations complete")
+    
 # Configure CORS (so React can talk to this API)
 app.add_middleware(
     CORSMiddleware,
@@ -34,6 +43,7 @@ app.include_router(vehicles.router)
 app.include_router(maintenance.router)
 app.include_router(fuel.router)
 app.include_router(approvals.router)
+app.include_router(auth.router)
 
 @app.get("/")
 def root():

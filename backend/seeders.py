@@ -15,6 +15,10 @@ from backend.models.database import Base
 from backend.models.vehicle import Vehicle
 from backend.models.maintenance import MaintenanceIssue, MaintenanceTask
 from backend.models.fuel import FuelLog
+from passlib.context import CryptContext
+
+from backend.models.user import User
+from backend.models.database import Base
 
 # Optional: use Faker for realistic data
 try:
@@ -31,6 +35,79 @@ engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 db = SessionLocal()
 
+
+DATABASE_URL = "sqlite:///./afritech_fleet.db"
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+db = SessionLocal()
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def create_initial_users():
+    print("👤 Creating initial users...")
+    
+    users = [
+        {
+            "email": "admin@afritech.com",
+            "username": "admin",
+            "full_name": "System Administrator",
+            "password": "admin123",
+            "role": "admin"
+        },
+        {
+            "email": "ceo@afritech.com",
+            "username": "ceo",
+            "full_name": "Ahmed S.",
+            "password": "ceo123",
+            "role": "ceo"
+        },
+        {
+            "email": "fleet@afritech.com",
+            "username": "fleet_manager",
+            "full_name": "Fleet Manager",
+            "password": "fleet123",
+            "role": "fleet_manager"
+        },
+        {
+            "email": "logistics@afritech.com",
+            "username": "logistics",
+            "full_name": "Hameed Ayodeji",
+            "password": "logistics123",
+            "role": "logistics_officer"
+        },
+        {
+            "email": "tech@afritech.com",
+            "username": "technician",
+            "full_name": "Workshop Technician",
+            "password": "tech123",
+            "role": "technician"
+        }
+    ]
+    
+    for user_data in users:
+        existing = db.query(User).filter(
+            (User.username == user_data["username"]) | (User.email == user_data["email"])
+        ).first()
+        
+        if not existing:
+            hashed_password = pwd_context.hash(user_data["password"])
+            user = User(
+                email=user_data["email"],
+                username=user_data["username"],
+                full_name=user_data["full_name"],
+                hashed_password=hashed_password,
+                role=user_data["role"]
+            )
+            db.add(user)
+            print(f"  ✅ Created: {user_data['username']} ({user_data['role']})")
+        else:
+            print(f"  ⏭️ Already exists: {user_data['username']}")
+    
+    db.commit()
+    print("✅ Users seeded successfully!")
+
+if __name__ == "__main__":
+    create_initial_users()
 # ---------- Constants ----------
 VEHICLE_TYPES = ['Bus', 'Truck', 'Sedan', 'SUV', 'Pickup', 'Van', 'Minibus']
 MAKES = ['Toyota', 'Nissan', 'Ford', 'Isuzu', 'Mitsubishi', 'Honda', 'Mazda', 'Hyundai']
