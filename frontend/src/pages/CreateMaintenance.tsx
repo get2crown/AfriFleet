@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, ChangeEvent } from 'react';
 import {
   Box, Typography, Button, TextField, Grid, Paper, IconButton,
   FormControl, InputLabel, Select, MenuItem, Alert, CircularProgress,
+  SelectChangeEvent,
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -16,11 +17,23 @@ interface Task {
   workshop: string;
 }
 
+interface FormState {
+  vehicle_id: number;
+  observation: string;
+  issues_identified: string;
+  mileage: number;
+  priority: string;
+  reported_date: string;
+  follow_up_date: string;
+  remarks: string;
+  tasks: Task[];
+}
+
 const CreateMaintenance: React.FC = () => {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     vehicle_id: 0,
     observation: '',
     issues_identified: '',
@@ -29,8 +42,20 @@ const CreateMaintenance: React.FC = () => {
     reported_date: new Date().toISOString().split('T')[0],
     follow_up_date: '',
     remarks: '',
-    tasks: [] as Task[], // explicit type
+    tasks: [],
   });
+
+  const handleInputChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent
+  ) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleNumberChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value === '' ? 0 : Number(value) }));
+  };
 
   const addTask = () => {
     setForm({
@@ -55,9 +80,18 @@ const CreateMaintenance: React.FC = () => {
     setForm({ ...form, tasks: newTasks });
   };
 
-  const handleTaskChange = (index: number, field: keyof Task, value: any) => {
+  const handleTaskChange = (
+    index: number,
+    field: keyof Task,
+    value: string | number
+  ) => {
     const newTasks = [...form.tasks];
-    newTasks[index][field] = value;
+    // Type-safe assignment
+    if (field === 'quantity' || field === 'cost_estimate') {
+      newTasks[index][field] = Number(value);
+    } else {
+      newTasks[index][field] = value as string;
+    }
     setForm({ ...form, tasks: newTasks });
   };
 
@@ -65,10 +99,32 @@ const CreateMaintenance: React.FC = () => {
     setSubmitting(true);
     setError(null);
     try {
+      // Build payload matching backend MaintenanceIssueCreate schema
       const payload = {
-        ...form,
-        issues_identified: form.issues_identified.split(',').map(s => s.trim()),
-        reported_date: new Date(form.reported_date).toISOString().split('T')[0],
+        vehicle_id: form.vehicle_id,
+        observation: form.observation,
+        issues_identified: form.issues_identified
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s !== ''),
+        mileage: form.mileage || undefined,
+        priority: form.priority,
+        color_code: undefined,
+        status: 'pending',
+        approval_status: 'pending',
+        reported_date: form.reported_date,
+        completed_date: undefined,
+        follow_up_date: form.follow_up_date || undefined,
+        remarks: form.remarks || undefined,
+        is_longstanding: false,
+        tasks: form.tasks.map((task) => ({
+          description: task.description,
+          quantity: task.quantity,
+          part_name: task.part_name || undefined,
+          cost_estimate: task.cost_estimate,
+          technician: task.technician || undefined,
+          workshop: task.workshop || undefined,
+        })),
       };
       await maintenanceAPI.create(payload);
       navigate('/maintenance');
@@ -93,9 +149,10 @@ const CreateMaintenance: React.FC = () => {
             <TextField
               fullWidth
               label="Vehicle ID"
+              name="vehicle_id"
               type="number"
               value={form.vehicle_id}
-              onChange={(e) => setForm({ ...form, vehicle_id: +e.target.value })}
+              onChange={handleNumberChange}
               required
             />
           </Grid>
@@ -103,19 +160,21 @@ const CreateMaintenance: React.FC = () => {
             <TextField
               fullWidth
               label="Mileage"
+              name="mileage"
               type="number"
               value={form.mileage}
-              onChange={(e) => setForm({ ...form, mileage: +e.target.value })}
+              onChange={handleNumberChange}
             />
           </Grid>
           <Grid item xs={12}>
             <TextField
               fullWidth
               label="Observation"
+              name="observation"
               multiline
               rows={2}
               value={form.observation}
-              onChange={(e) => setForm({ ...form, observation: e.target.value })}
+              onChange={handleInputChange}
               required
             />
           </Grid>
@@ -123,8 +182,9 @@ const CreateMaintenance: React.FC = () => {
             <TextField
               fullWidth
               label="Issues Identified (comma separated)"
+              name="issues_identified"
               value={form.issues_identified}
-              onChange={(e) => setForm({ ...form, issues_identified: e.target.value })}
+              onChange={handleInputChange}
               helperText="e.g., Oil leak, Brake noise"
             />
           </Grid>
@@ -132,9 +192,10 @@ const CreateMaintenance: React.FC = () => {
             <FormControl fullWidth>
               <InputLabel>Priority</InputLabel>
               <Select
+                name="priority"
                 value={form.priority}
                 label="Priority"
-                onChange={(e) => setForm({ ...form, priority: e.target.value })}
+                onChange={handleInputChange}
               >
                 <MenuItem value="low">Low</MenuItem>
                 <MenuItem value="medium">Medium</MenuItem>
@@ -147,9 +208,10 @@ const CreateMaintenance: React.FC = () => {
             <TextField
               fullWidth
               label="Reported Date"
+              name="reported_date"
               type="date"
               value={form.reported_date}
-              onChange={(e) => setForm({ ...form, reported_date: e.target.value })}
+              onChange={handleInputChange}
               InputLabelProps={{ shrink: true }}
               required
             />
@@ -158,9 +220,10 @@ const CreateMaintenance: React.FC = () => {
             <TextField
               fullWidth
               label="Follow-up Date"
+              name="follow_up_date"
               type="date"
               value={form.follow_up_date}
-              onChange={(e) => setForm({ ...form, follow_up_date: e.target.value })}
+              onChange={handleInputChange}
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
@@ -168,10 +231,11 @@ const CreateMaintenance: React.FC = () => {
             <TextField
               fullWidth
               label="Remarks"
+              name="remarks"
               multiline
               rows={2}
               value={form.remarks}
-              onChange={(e) => setForm({ ...form, remarks: e.target.value })}
+              onChange={handleInputChange}
             />
           </Grid>
         </Grid>
@@ -200,7 +264,16 @@ const CreateMaintenance: React.FC = () => {
                   label="Qty"
                   type="number"
                   value={task.quantity}
-                  onChange={(e) => handleTaskChange(index, 'quantity', +e.target.value)}
+                  onChange={(e) => handleTaskChange(index, 'quantity', e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={6} md={2}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Part Name"
+                  value={task.part_name}
+                  onChange={(e) => handleTaskChange(index, 'part_name', e.target.value)}
                 />
               </Grid>
               <Grid item xs={6} md={2}>
@@ -210,15 +283,15 @@ const CreateMaintenance: React.FC = () => {
                   label="Cost Est."
                   type="number"
                   value={task.cost_estimate}
-                  onChange={(e) => handleTaskChange(index, 'cost_estimate', +e.target.value)}
+                  onChange={(e) => handleTaskChange(index, 'cost_estimate', e.target.value)}
                   required
                 />
               </Grid>
-              <Grid item xs={6} md={2}>
+              <Grid item xs={6} md={1}>
                 <TextField
                   fullWidth
                   size="small"
-                  label="Technician"
+                  label="Tech"
                   value={task.technician}
                   onChange={(e) => handleTaskChange(index, 'technician', e.target.value)}
                 />
