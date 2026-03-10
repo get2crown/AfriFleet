@@ -7,6 +7,8 @@ import {
 import { Add as AddIcon, Edit as EditIcon } from '@mui/icons-material';
 import { vehicleAPI } from '../services/api';
 import { useLoading } from '../contexts/LoadingContext';
+import { VehicleSkeleton } from '../components/SkeletonLoader';
+import { VehicleEmptyState } from '../components/EmptyState';
 
 interface Vehicle {
   id: number;
@@ -106,8 +108,22 @@ const Vehicles: React.FC = () => {
     }
   };
 
-  if (loading) return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />;
-  if (error) return <Alert severity="error">{error}</Alert>;
+  if (loading) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h4" fontWeight={600} mb={3}>Vehicles</Typography>
+        <VehicleSkeleton />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3 }}>
@@ -123,7 +139,7 @@ const Vehicles: React.FC = () => {
       </Box>
 
       {vehicles.length === 0 ? (
-        <Alert severity="info">No vehicles found. Add one using the button above.</Alert>
+        <VehicleEmptyState onAddVehicle={() => handleOpenDialog()} />
       ) : (
         <Grid container spacing={3}>
           {vehicles.map((vehicle) => (

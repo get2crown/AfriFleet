@@ -1,3 +1,4 @@
+// src/App.tsx
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -17,6 +18,7 @@ import Reports from './pages/Reports';
 import Approvals from './pages/Approvals';
 import CreateMaintenance from './pages/CreateMaintenance';
 import CreateFuelLog from './pages/CreateFuelLog';
+import DriverComplaint from './pages/DriverComplaint';
 import { theme } from './styles/theme';
 
 function App() {
@@ -48,7 +50,7 @@ function App() {
             } />
 
             <Route path="/vehicles" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole={['admin', 'ceo', 'fleet_manager', 'logistics_officer']}>
                 <Layout>
                   <Vehicles />
                 </Layout>
@@ -56,7 +58,7 @@ function App() {
             } />
 
             <Route path="/maintenance" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole={['admin', 'ceo', 'fleet_manager', 'logistics_officer', 'technician']}>
                 <Layout>
                   <Maintenance />
                 </Layout>
@@ -64,15 +66,23 @@ function App() {
             } />
 
             <Route path="/maintenance/new" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole={['admin', 'fleet_manager', 'logistics_officer']}>
                 <Layout>
                   <CreateMaintenance />
                 </Layout>
               </ProtectedRoute>
             } />
 
+            <Route path="/driver/complaint" element={
+              <ProtectedRoute requiredRole={['driver']}>
+                <Layout>
+                  <DriverComplaint />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
             <Route path="/fuel" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole={['admin', 'ceo', 'fleet_manager', 'logistics_officer']}>
                 <Layout>
                   <FuelLogs />
                 </Layout>
@@ -80,7 +90,7 @@ function App() {
             } />
 
             <Route path="/fuel/new" element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole={['admin', 'fleet_manager', 'logistics_officer']}>
                 <Layout>
                   <CreateFuelLog />
                 </Layout>

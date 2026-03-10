@@ -1,4 +1,3 @@
-// frontend/src/components/Layout.tsx
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -18,10 +17,7 @@ import {
   MenuItem,
   Badge,
   useTheme,
-  Breadcrumbs,
-  Link as MuiLink,
-  Backdrop,
-  CircularProgress,
+  Button,
   Chip,
 } from '@mui/material';
 import {
@@ -34,12 +30,14 @@ import {
   Approval as ApprovalIcon,
   Notifications as NotificationsIcon,
   Person as PersonIcon,
-  Logout as LogoutIcon
+  Settings as SettingsIcon,
+  Logout as LogoutIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
-import QuickSearch from './QuickSearch';
-import { useLoading } from '../contexts/LoadingContext';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import QuickSearch from './QuickSearch';
+import NotificationBadge from './NotificationBadge';
 
 const drawerWidth = 280;
 
@@ -50,49 +48,10 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { loading } = useLoading();
-
+  const { user, logout, hasRole } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [searchOpen, setSearchOpen] = useState(false);
-  const { user, logout } = useAuth();
-
-
-  // keyboard shortcuts
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey && !e.shiftKey && !e.altKey) {
-        switch (e.key.toLowerCase()) {
-          case '1':
-            navigate('/dashboard');
-            break;
-          case '2':
-            navigate('/vehicles');
-            break;
-          case '3':
-            navigate('/maintenance');
-            break;
-          case '4':
-            navigate('/fuel');
-            break;
-          case '5':
-            navigate('/reports');
-            break;
-          case '6':
-            navigate('/approvals');
-            break;
-          case 'k':
-            e.preventDefault();
-            setSearchOpen(true);
-            break;
-          default:
-        }
-      }
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [navigate]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -106,20 +65,80 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     setAnchorEl(null);
   };
 
-  const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-    { text: 'Vehicles', icon: <CarIcon />, path: '/vehicles' },
-    { text: 'Maintenance', icon: <BuildIcon />, path: '/maintenance' },
-    { text: 'Fuel Logs', icon: <FuelIcon />, path: '/fuel' },
-    { text: 'Reports', icon: <ReportIcon />, path: '/reports' },
-    { text: 'Approvals', icon: <ApprovalIcon />, path: '/approvals' },
-  ];
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const handleSearchOpen = () => {
+    setSearchOpen(true);
+  };
+
+  // Keyboard shortcut for search (Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.key === 'k') {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Function to get menu items based on user role
+  const getMenuItems = () => {
+    const baseItems = [
+      { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', badge: null },
+    ];
+
+    const roleSpecificItems = [];
+
+    // Admin and CEO see everything
+    if (hasRole(['admin', 'ceo'])) {
+      roleSpecificItems.push(
+        { text: 'Vehicles', icon: <CarIcon />, path: '/vehicles', badge: null },
+        { text: 'Maintenance', icon: <BuildIcon />, path: '/maintenance', badge: 3 },
+        { text: 'Fuel Logs', icon: <FuelIcon />, path: '/fuel', badge: null },
+        { text: 'Reports', icon: <ReportIcon />, path: '/reports', badge: null },
+        { text: 'Approvals', icon: <ApprovalIcon />, path: '/approvals', badge: 2 }
+      );
+    }
+    // Fleet Managers and Logistics Officers
+    else if (hasRole(['fleet_manager', 'logistics_officer'])) {
+      roleSpecificItems.push(
+        { text: 'Vehicles', icon: <CarIcon />, path: '/vehicles', badge: null },
+        { text: 'Maintenance', icon: <BuildIcon />, path: '/maintenance', badge: 3 },
+        { text: 'Fuel Logs', icon: <FuelIcon />, path: '/fuel', badge: null },
+        { text: 'Reports', icon: <ReportIcon />, path: '/reports', badge: null }
+      );
+    }
+    // Technicians
+    else if (hasRole(['technician'])) {
+      roleSpecificItems.push(
+        { text: 'Maintenance', icon: <BuildIcon />, path: '/maintenance', badge: 3 }
+      );
+    }
+    // Drivers
+    else if (hasRole(['driver'])) {
+      roleSpecificItems.push(
+        { text: 'Report Issue', icon: <BuildIcon />, path: '/driver/complaint', badge: null }
+      );
+    }
+
+    return [...baseItems, ...roleSpecificItems];
+  };
+
+  const menuItems = getMenuItems();
 
   const drawer = (
     <Box>
-      <Toolbar sx={{ justifyContent: 'center', py: 2 }}>
+      <Toolbar sx={{ justifyContent: 'center', py: 2, flexDirection: 'column' }}>
         <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
           AFRI TECH
+        </Typography>
+        <Typography variant="caption" color="textSecondary">
+          Fleet Manager v2.0
         </Typography>
       </Toolbar>
       <Divider />
@@ -142,6 +161,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 primary={item.text} 
                 primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 500 }}
               />
+              {item.badge && (
+                <Chip
+                  label={item.badge}
+                  size="small"
+                  color="error"
+                  sx={{ height: 20, minWidth: 20 }}
+                />
+              )}
             </ListItemButton>
           </ListItem>
         ))}
@@ -172,57 +199,84 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <MenuIcon />
           </IconButton>
           
+          <Typography variant="body2" color="textSecondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
+            Welcome back, {user?.full_name || 'User'}
+          </Typography>
+          
           <Box sx={{ flexGrow: 1 }} />
           
-          <IconButton sx={{ mr: 2 }}>
-            <Badge badgeContent={4} color="error">
-              <NotificationsIcon />
-            </Badge>
-          </IconButton>
+          {/* Global Search */}
+          <Button
+            onClick={handleSearchOpen}
+            startIcon={<SearchIcon />}
+            sx={{ 
+              mr: 2, 
+              color: 'text.secondary',
+              bgcolor: '#f5f5f5',
+              '&:hover': { bgcolor: '#eeeeee' }
+            }}
+          >
+            Search... <Typography variant="caption" sx={{ ml: 1, color: '#999' }}>Ctrl+K</Typography>
+          </Button>
           
-          <IconButton onClick={handleProfileMenuOpen}>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: theme.palette.primary.main }}>
-              <PersonIcon fontSize="small" />
-            </Avatar>
-          </IconButton>
+          {/* Notifications - Using the new component */}
+          <NotificationBadge />
+          
+          {/* User Menu with Visible Logout Button */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
+            <Chip
+              avatar={<Avatar sx={{ bgcolor: theme.palette.primary.main }}>
+                <PersonIcon fontSize="small" />
+              </Avatar>}
+              label={user?.username || 'User'}
+              variant="outlined"
+              onClick={handleProfileMenuOpen}
+              sx={{ cursor: 'pointer' }}
+            />
+            <Button
+              variant="outlined"
+              color="error"
+              size="small"
+              startIcon={<LogoutIcon />}
+              onClick={handleLogout}
+              sx={{ 
+                display: { xs: 'none', sm: 'flex' },
+                borderColor: theme.palette.error.main,
+                '&:hover': {
+                  backgroundColor: theme.palette.error.main,
+                  color: 'white',
+                }
+              }}
+            >
+              Logout
+            </Button>
+          </Box>
           
           <Menu
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}
             onClose={handleProfileMenuClose}
           >
-            <MenuItem onClick={handleProfileMenuClose}>Profile</MenuItem>
-            <MenuItem onClick={handleProfileMenuClose}>Settings</MenuItem>
+            <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/profile'); }}>
+              <ListItemIcon>
+                <PersonIcon fontSize="small" />
+              </ListItemIcon>
+              Profile
+            </MenuItem>
+            <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/settings'); }}>
+              <ListItemIcon>
+                <SettingsIcon fontSize="small" />
+              </ListItemIcon>
+              Settings
+            </MenuItem>
             <Divider />
-            <MenuItem onClick={handleProfileMenuClose}>Logout</MenuItem>
+            <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" color="error" />
+              </ListItemIcon>
+              Logout
+            </MenuItem>
           </Menu>
-        </Toolbar>
-        {/* breadcrumbs */}
-        <Toolbar variant="dense" sx={{ bgcolor: '#f5f5f5', pl: { sm: 3 }, py: 0.5 }}>
-          <Breadcrumbs aria-label="breadcrumb">
-            {location.pathname
-              .split('/')
-              .filter(Boolean)
-              .map((segment, idx, arr) => {
-                const path = '/' + arr.slice(0, idx + 1).join('/');
-                const label = segment.charAt(0).toUpperCase() + segment.slice(1);
-                return idx === arr.length - 1 ? (
-                  <Typography key={path} color="text.primary">
-                    {label}
-                  </Typography>
-                ) : (
-                  <MuiLink
-                    key={path}
-                    color="inherit"
-                    underline="hover"
-                    onClick={() => navigate(path)}
-                    sx={{ cursor: 'pointer' }}
-                  >
-                    {label}
-                  </MuiLink>
-                );
-              })}
-          </Breadcrumbs>
         </Toolbar>
       </AppBar>
 
@@ -257,8 +311,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <Box
         component="main"
         sx={{
-          flexGrow: 1, 
-          p: 3,
+          flexGrow: 1,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           minHeight: '100vh',
           backgroundColor: '#F9FAFB',
@@ -268,33 +321,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {children}
       </Box>
 
-      {/* global loading spinner */}
-      <Backdrop open={loading} sx={{ color: '#fff', zIndex: theme.zIndex.drawer + 1 }}>
-        <CircularProgress color="inherit" />
-      </Backdrop>
-
-      // In the profile menu items, add logout option:
-      <MenuItem onClick={() => { logout(); navigate('/login'); }}>
-        <ListItemIcon>
-          <LogoutIcon fontSize="small" />
-         </ListItemIcon>
-        Logout
-      </MenuItem>
-    // Optionally show user name in AppBar:
-      <Typography variant="body2" sx={{ mr: 1 }}>
-    {user?.full_name}
-  </Typography>
-  < Chip 
-    label={user?.role} 
-    size="small" 
-    color="primary" 
-    variant="outlined" 
-  />
-
-      {/* quick search dialog */}
+      {/* Quick Search Dialog */}
       <QuickSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </Box>
-    
   );
 };
 
